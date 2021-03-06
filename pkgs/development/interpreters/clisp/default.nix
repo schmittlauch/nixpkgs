@@ -3,7 +3,7 @@
 # - base (default): contains readline and i18n, regexp and syscalls modules
 #   by default
 # - full: contains base plus modules in withModules
-{ lib, stdenv, fetchurl, libsigsegv, gettext, ncurses, readline, libX11
+{ lib, stdenv, fetchFromGitLab, libsigsegv, gettext, ncurses, readline, libX11
 , libXau, libXt, pcre, zlib, libXpm, xorgproto, libXext
 , libffi
 , libffcall
@@ -27,9 +27,11 @@ stdenv.mkDerivation rec {
   v = "2.49";
   name = "clisp-${v}";
 
-  src = fetchurl {
-    url = "mirror://gnu/clisp/release/${v}/${name}.tar.bz2";
-    sha256 = "8132ff353afaa70e6b19367a25ae3d5a43627279c25647c220641fed00f8e890";
+  src = fetchFromGitLab {
+    owner = "gnu-clisp";
+    repo = "clisp";
+    rev = "clisp-2.49-2010-07-07";
+    sha256 = "1w2fcffynjv836nvybgim38avjng635ayk7jqhhlnw3xy7paasid";
   };
 
   inherit libsigsegv gettext coreutils;
@@ -98,7 +100,7 @@ stdenv.mkDerivation rec {
     maintainers = with lib.maintainers; [raskin tohl];
     platforms = lib.platforms.unix;
     # problems on Darwin: https://github.com/NixOS/nixpkgs/issues/20062
-    broken = stdenv.hostPlatform.isDarwin || stdenv.hostPlatform.isAarch64;
+    broken = stdenv.hostPlatform.isDarwin;
     license = lib.licenses.gpl2;
   };
 }
