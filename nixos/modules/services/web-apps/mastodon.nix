@@ -274,6 +274,16 @@ in {
         type = lib.types.bool;
         default = true;
       };
+      bindAddress = lib.mkOption {
+        description = ''
+          The IP address (IPv4 or IPv6) which both the web (Puma) and streaming API (Node.js) processes bind to.
+          This defaults to 127.0.0.1 (localhost), but can be adjusted in case the reverse proxy in front of this
+          instance resides on another machine or container.
+          When `enableUnixSocket` is used, this option's value is ignored.
+        '';
+        type = lib.types.str;
+        default = "127.0.0.1";
+      };
 
       redis = {
         createLocally = lib.mkOption {
@@ -509,7 +519,10 @@ in {
       wantedBy = [ "multi-user.target" ];
       environment = env // (if cfg.enableUnixSocket
         then { SOCKET = "/run/mastodon-streaming/streaming.socket"; }
-        else { PORT = toString(cfg.streamingPort); }
+        else { 
+          PORT = toString(cfg.streamingPort);
+          BIND = cfg.bindAddress;
+        }
       );
       serviceConfig = {
         ExecStart = "${cfg.package}/run-streaming.sh";
@@ -533,7 +546,10 @@ in {
       wantedBy = [ "multi-user.target" ];
       environment = env // (if cfg.enableUnixSocket
         then { SOCKET = "/run/mastodon-web/web.socket"; }
-        else { PORT = toString(cfg.webPort); }
+        else {
+          PORT = toString(cfg.webPort);
+          BIND = cfg.bindAddress;
+        }
       );
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/puma -C config/puma.rb";
@@ -587,12 +603,12 @@ in {
         };
 
         locations."@proxy" = {
-          proxyPass = (if cfg.enableUnixSocket then "http://unix:/run/mastodon-web/web.socket" else "http://127.0.0.1:${toString(cfg.webPort)}");
+          proxyPass = (if cfg.enableUnixSocket then "http://unix:/run/mastodon-web/web.socket" else "http://${cfg.bindAddress}:${toString(cfg.webPort)}");
           proxyWebsockets = true;
         };
 
         locations."/api/v1/streaming/" = {
-          proxyPass = (if cfg.enableUnixSocket then "http://unix:/run/mastodon-streaming/streaming.socket" else "http://127.0.0.1:${toString(cfg.streamingPort)}/");
+          proxyPass = (if cfg.enableUnixSocket then "http://unix:/run/mastodon-streaming/streaming.socket" else "http://${cfg.bindAddress}:${toString(cfg.streamingPort)}/");
           proxyWebsockets = true;
         };
       };
