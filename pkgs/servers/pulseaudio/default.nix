@@ -4,6 +4,7 @@
 , avahi, libjack2, libasyncns, lirc, dbus
 , sbc, bluez5, udev, openssl, fftwFloat
 , soxr, speexdsp, systemd, webrtc-audio-processing
+, gst_all_1
 , check, meson, ninja, m4
 
 , x11Support ? false
@@ -64,7 +65,9 @@ stdenv.mkDerivation rec {
       ++ lib.optional useSystemd systemd
       ++ lib.optionals stdenv.isLinux [ alsa-lib udev ]
       ++ lib.optional airtunesSupport openssl
-      ++ lib.optionals bluetoothSupport [ bluez5 sbc ]
+      # aptX and LDAC codecs are in gst-plugins-bad so far
+      ++ lib.optionals bluetoothSupport ([ bluez5 sbc ]
+        ++ (builtins.attrValues { inherit (gst_all_1) gst-plugins-bad gst-libav gst-plugins-good gst-plugins-base gstreamer; }))
       ++ lib.optional remoteControlSupport lirc
       ++ lib.optional zeroconfSupport  avahi
   );
@@ -74,7 +77,8 @@ stdenv.mkDerivation rec {
     "-Dasyncns=${if !libOnly then "enabled" else "disabled"}"
     "-Davahi=${if zeroconfSupport then "enabled" else "disabled"}"
     "-Dbluez5=${if !libOnly then "enabled" else "disabled"}"
-    "-Dbluez5-gstreamer=disabled"
+    # A2DP codecs are provided by gstreamer
+    "-Dbluez5-gstreamer=${if (!libOnly && bluetoothSupport) then "enabled" else "disabled"}"
     "-Ddatabase=simple"
     "-Ddoxygen=false"
     "-Delogind=disabled"
